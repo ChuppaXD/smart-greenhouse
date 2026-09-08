@@ -1,5 +1,0 @@
-__init__
-application
-domain
-infrastructure
-interfaces
