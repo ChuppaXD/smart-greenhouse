@@ -21,4 +21,13 @@ def check_database() -> bool:
     
     except Exception:
         return False
+
+
+def get_db():
+    db = SessionLocal()
+
+    try:
+        yield db
+    finally:
+        db.close()
     

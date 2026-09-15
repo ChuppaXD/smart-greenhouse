@@ -5,10 +5,7 @@ from alembic import context
 from sqlalchemy import create_engine, pool
 
 
-# Get the backend directory
 BASE_DIR = Path(__file__).resolve().parents[1]
-
-# Add backend/src to Python path
 SRC_DIR = BASE_DIR / "src"
 
 if str(SRC_DIR) not in sys.path:
@@ -16,19 +13,18 @@ if str(SRC_DIR) not in sys.path:
 
 
 from infrastructure.settings import settings
+from infrastructure.persistence.base import Base
+from infrastructure.persistence import models  # noqa: F401
 
 
 config = context.config
 
-# Use the database URL from application settings
 DATABASE_URL = settings.database_url
 
-target_metadata = None
+target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in offline mode."""
-
     context.configure(
         url=DATABASE_URL,
         target_metadata=target_metadata,
@@ -41,8 +37,6 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in online mode."""
-
     connectable = create_engine(
         DATABASE_URL,
         poolclass=pool.NullPool,
