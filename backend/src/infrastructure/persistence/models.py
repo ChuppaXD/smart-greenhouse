@@ -28,6 +28,12 @@ class DeviceRow(Base):
         server_default=text("'sensor'"),
     )
 
+    device_family: Mapped[str] = mapped_column(
+    String(32),
+    nullable=False,
+    server_default=text("'simulation'"),
+    )
+
     display_name: Mapped[str | None] = mapped_column(
         String(128),
         nullable=True,
@@ -47,4 +53,5 @@ class DeviceRow(Base):
 
     __table_args__ = (
         Index("ix_devices_role", "role"),
+        Index("ix_devices_family", "device_family"),
     )

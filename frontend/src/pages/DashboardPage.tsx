@@ -1,4 +1,9 @@
+import { useState } from "react";
+
 import SensorList from "../features/sensors/SensorList";
+import DeviceFamilySwitcher from "../components/devices/DeviceFamilySwitcher";
+import DeviceList from "../components/devices/DeviceList";
+import type { DeviceFamily } from "../services/api";
 
 
 const sections = [
@@ -11,6 +16,9 @@ const sections = [
 
 
 export default function DashboardPage() {
+  const [family, setFamily] = useState<DeviceFamily>("simulation");
+
+
   return (
     <div className="space-y-6">
       <div>
@@ -39,6 +47,32 @@ export default function DashboardPage() {
         </div>
 
         <SensorList />
+      </section>
+
+
+      <section
+        id="devices"
+        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-slate-900">
+            Devices
+          </h3>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Provision and view a complete device family.
+          </p>
+        </div>
+
+
+        <div className="space-y-6">
+          <DeviceFamilySwitcher
+            selectedFamily={family}
+            onChange={setFamily}
+          />
+
+          <DeviceList family={family} />
+        </div>
       </section>
 
 
