@@ -1,22 +1,40 @@
 import { useState } from "react";
 
-import SensorList from "../features/sensors/SensorList";
 import DeviceFamilySwitcher from "../components/devices/DeviceFamilySwitcher";
 import DeviceList from "../components/devices/DeviceList";
+import LocationConfigWizard from "../components/config/LocationConfigWizard";
+import SensorList from "../features/sensors/SensorList";
 import type { DeviceFamily } from "../services/api";
 
 
 const sections = [
-  { id: "config", title: "Configuration" },
-  { id: "automation", title: "Automation" },
-  { id: "overview", title: "Overview" },
-  { id: "controls", title: "Controls" },
-  { id: "events", title: "Events" },
+  {
+    id: "automation",
+    title: "Automation",
+  },
+  {
+    id: "overview",
+    title: "Overview",
+  },
+  {
+    id: "controls",
+    title: "Controls",
+  },
+  {
+    id: "events",
+    title: "Events",
+  },
 ];
 
 
 export default function DashboardPage() {
-  const [family, setFamily] = useState<DeviceFamily>("simulation");
+  const [family, setFamily] =
+    useState<DeviceFamily>("simulation");
+
+  const [
+    locationRefreshKey,
+    setLocationRefreshKey,
+  ] = useState(0);
 
 
   return (
@@ -51,6 +69,30 @@ export default function DashboardPage() {
 
 
       <section
+        id="configuration"
+        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-slate-900">
+            Configuration
+          </h3>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Create locations and manage their zones.
+          </p>
+        </div>
+
+        <LocationConfigWizard
+          onLocationsChanged={() =>
+            setLocationRefreshKey(
+              (current) => current + 1,
+            )
+          }
+        />
+      </section>
+
+
+      <section
         id="devices"
         className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
       >
@@ -71,7 +113,10 @@ export default function DashboardPage() {
             onChange={setFamily}
           />
 
-          <DeviceList family={family} />
+          <DeviceList
+            family={family}
+            refreshKey={locationRefreshKey}
+          />
         </div>
       </section>
 
