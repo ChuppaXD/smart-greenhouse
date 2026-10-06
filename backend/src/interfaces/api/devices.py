@@ -14,14 +14,19 @@ from application.devices.dto import DeviceDto
 from application.devices.family_service import (
     DeviceFamilyService,
 )
-from application.devices.mappers import devices_to_dtos
+from application.devices.mappers import (
+    devices_to_dtos,
+)
 from application.locations.dto import (
     ZoneAssignmentRequestDto,
 )
 from application.locations.zone_assignment_service import (
     ZoneAssignmentService,
 )
-from domain.locations.errors import ConfigurationError
+from application.readings.dto import (
+    SamplingDto,
+    SamplingUpdateDto,
+)
 from infrastructure.db import get_db
 from infrastructure.persistence.device_repository import (
     DeviceRepository,
@@ -39,7 +44,9 @@ def get_device_family_service(
 ) -> DeviceFamilyService:
     repository = DeviceRepository(db)
 
-    return DeviceFamilyService(repository)
+    return DeviceFamilyService(
+        repository
+    )
 
 
 def get_zone_assignment_service(
@@ -47,7 +54,9 @@ def get_zone_assignment_service(
 ) -> ZoneAssignmentService:
     repository = DeviceRepository(db)
 
-    return ZoneAssignmentService(repository)
+    return ZoneAssignmentService(
+        repository
+    )
 
 
 @router.get(
@@ -56,9 +65,10 @@ def get_zone_assignment_service(
 )
 def list_devices(
     family: str | None = Query(default=None),
-    role: Literal["sensor", "actuator"] | None = Query(
-        default=None
-    ),
+    role: (
+        Literal["sensor", "actuator"]
+        | None
+    ) = Query(default=None),
     service: DeviceFamilyService = Depends(
         get_device_family_service
     ),
@@ -68,7 +78,9 @@ def list_devices(
         role=role,
     )
 
-    return devices_to_dtos(devices)
+    return devices_to_dtos(
+        devices
+    )
 
 
 @router.post(
@@ -83,15 +95,21 @@ def provision_devices(
     ),
 ):
     try:
-        devices = service.provision_family(family)
+        devices = service.provision_family(
+            family
+        )
 
     except ValueError as exc:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
             detail=str(exc),
         ) from exc
 
-    return devices_to_dtos(devices)
+    return devices_to_dtos(
+        devices
+    )
 
 
 @router.patch(
@@ -113,8 +131,64 @@ def assign_device_to_zone(
 
     except LookupError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
             detail=str(exc),
         ) from exc
 
     return None
+
+
+@router.patch(
+    "/{device_id}/sampling",
+    response_model=SamplingDto,
+)
+def update_sampling(
+    device_id: UUID,
+    request: SamplingUpdateDto,
+    db: Session = Depends(get_db),
+):
+    if request.sampling_interval_seconds < 5:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_400_BAD_REQUEST
+            ),
+            detail=(
+                "sampling_interval_seconds "
+                "must be at least 5 seconds."
+            ),
+        )
+
+    repository = DeviceRepository(db)
+
+    device = repository.update_sampling(
+        device_id=device_id,
+        sampling_interval_seconds=(
+            request.sampling_interval_seconds
+        ),
+        tracking_enabled=(
+            request.tracking_enabled
+        ),
+    )
+
+    if device is None:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+            detail=(
+                f"Device {device_id} "
+                "was not found."
+            ),
+        )
+
+    return SamplingDto(
+        device_id=device.id,
+        sampling_interval_seconds=(
+            device.sampling_interval_seconds
+        ),
+        tracking_enabled=(
+            device.tracking_enabled
+        ),
+    )

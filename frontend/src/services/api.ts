@@ -5,7 +5,28 @@ export type HealthResponse = {
 
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+  import.meta.env.VITE_API_BASE_URL ||
+  "http://localhost:8000";
+
+
+async function getErrorMessage(
+  response: Response,
+  fallback: string,
+): Promise<string> {
+  try {
+    const body = await response.json();
+
+    if (
+      typeof body?.detail === "string"
+    ) {
+      return body.detail;
+    }
+  } catch {
+    // Use the fallback message.
+  }
+
+  return fallback;
+}
 
 
 export async function fetchHealth(): Promise<HealthResponse> {
@@ -23,11 +44,35 @@ export async function fetchHealth(): Promise<HealthResponse> {
 }
 
 
+export type ReadingDto = {
+  device_id: string;
+  value: number;
+  unit: string;
+  source: string;
+  recorded_at: string;
+};
+
+
+export type SamplingUpdateDto = {
+  sampling_interval_seconds: number;
+  tracking_enabled: boolean;
+};
+
+
+export type SamplingDto = {
+  device_id: string;
+  sampling_interval_seconds: number;
+  tracking_enabled: boolean;
+};
+
+
 export type SensorDto = {
   id: string;
   device_type: string;
   display_name: string;
   default_config: Record<string, unknown>;
+  sampling_interval_seconds: number;
+  tracking_enabled: boolean;
 };
 
 
@@ -59,20 +104,100 @@ export async function createSensor(
       },
       body: JSON.stringify({
         type,
-        display_name: displayName ?? null,
+        display_name:
+          displayName ?? null,
       }),
     },
   );
 
   if (!response.ok) {
-    const message = await response.text();
+    const message =
+      await getErrorMessage(
+        response,
+        `Failed to create sensor: ${response.status}`,
+      );
 
-    throw new Error(
-      `Failed to create sensor: ${response.status} ${message}`,
-    );
+    throw new Error(message);
   }
 
   return response.json() as Promise<SensorDto>;
+}
+
+
+export async function readSensor(
+  deviceId: string,
+): Promise<ReadingDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/sensors/${deviceId}/read`,
+    {
+      method: "POST",
+    },
+  );
+
+  if (!response.ok) {
+    const message =
+      await getErrorMessage(
+        response,
+        `Failed to read sensor: ${response.status}`,
+      );
+
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<ReadingDto>;
+}
+
+
+export async function fetchLatestReading(
+  deviceId: string,
+): Promise<ReadingDto | null> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/sensors/${deviceId}/readings?limit=1`,
+  );
+
+  if (!response.ok) {
+    const message =
+      await getErrorMessage(
+        response,
+        `Failed to load latest reading: ${response.status}`,
+      );
+
+    throw new Error(message);
+  }
+
+  const readings =
+    await response.json() as ReadingDto[];
+
+  return readings[0] ?? null;
+}
+
+
+export async function updateDeviceSampling(
+  deviceId: string,
+  data: SamplingUpdateDto,
+): Promise<SamplingDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/devices/${deviceId}/sampling`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    },
+  );
+
+  if (!response.ok) {
+    const message =
+      await getErrorMessage(
+        response,
+        `Failed to update sampling: ${response.status}`,
+      );
+
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<SamplingDto>;
 }
 
 
@@ -90,6 +215,8 @@ export type DeviceDto = {
   default_config: Record<string, unknown>;
   zone_id: string | null;
   location_id: string | null;
+  sampling_interval_seconds: number;
+  tracking_enabled: boolean;
 };
 
 
@@ -100,17 +227,25 @@ export async function fetchDevices({
   family?: DeviceFamily;
   role?: "sensor" | "actuator";
 } = {}): Promise<DeviceDto[]> {
-  const params = new URLSearchParams();
+  const params =
+    new URLSearchParams();
 
   if (family) {
-    params.set("family", family);
+    params.set(
+      "family",
+      family,
+    );
   }
 
   if (role) {
-    params.set("role", role);
+    params.set(
+      "role",
+      role,
+    );
   }
 
-  const query = params.toString();
+  const query =
+    params.toString();
 
   const response = await fetch(
     `${API_BASE_URL}/api/devices${
@@ -139,7 +274,8 @@ export async function provisionDeviceFamily(
   );
 
   if (!response.ok) {
-    const message = await response.text();
+    const message =
+      await response.text();
 
     throw new Error(
       `Failed to provision device family: ${response.status} ${message}`,
@@ -228,7 +364,8 @@ export async function createLocationConfig(
   );
 
   if (!response.ok) {
-    const message = await response.text();
+    const message =
+      await response.text();
 
     throw new Error(
       `Failed to create location: ${response.status} ${message}`,
@@ -267,7 +404,8 @@ export async function deleteLocation(
   );
 
   if (!response.ok) {
-    const message = await response.text();
+    const message =
+      await response.text();
 
     throw new Error(
       `Failed to delete location: ${response.status} ${message}`,
@@ -292,7 +430,8 @@ export async function addZone(
   );
 
   if (!response.ok) {
-    const message = await response.text();
+    const message =
+      await response.text();
 
     throw new Error(
       `Failed to add zone: ${response.status} ${message}`,
@@ -320,7 +459,8 @@ export async function updateZone(
   );
 
   if (!response.ok) {
-    const message = await response.text();
+    const message =
+      await response.text();
 
     throw new Error(
       `Failed to update zone: ${response.status} ${message}`,
@@ -343,7 +483,8 @@ export async function deleteZone(
   );
 
   if (!response.ok) {
-    const message = await response.text();
+    const message =
+      await response.text();
 
     throw new Error(
       `Failed to delete zone: ${response.status} ${message}`,
@@ -370,7 +511,8 @@ export async function assignDeviceToZone(
   );
 
   if (!response.ok) {
-    const message = await response.text();
+    const message =
+      await response.text();
 
     throw new Error(
       `Failed to assign device: ${response.status} ${message}`,

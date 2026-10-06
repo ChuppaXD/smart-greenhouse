@@ -23,9 +23,12 @@ class MoistureSensorCreator(SensorCreator):
             display_name=display_name or "Soil moisture sensor",
             default_config={
                 "sampling_interval_seconds": 300,
+                "protocol": "simulation",
                 "unit": "vwc",
                 "threshold": 40,
             },
+            sampling_interval_seconds=300,
+            tracking_enabled=True,
         )
 
 
@@ -40,8 +43,11 @@ class LightSensorCreator(SensorCreator):
             display_name=display_name or "Light sensor",
             default_config={
                 "sampling_interval_seconds": 60,
+                "protocol": "simulation",
                 "unit": "lux",
             },
+            sampling_interval_seconds=60,
+            tracking_enabled=True,
         )
 
 
