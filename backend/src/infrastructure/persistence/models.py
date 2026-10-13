@@ -6,10 +6,10 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import (
     Boolean,
-    Integer,
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Numeric,
     String,
     UniqueConstraint,
@@ -199,9 +199,18 @@ class DeviceRow(Base):
     )
 
     __table_args__ = (
-        Index("ix_devices_role", "role"),
-        Index("ix_devices_family", "device_family"),
-        Index("ix_devices_zone_id", "zone_id"),
+        Index(
+            "ix_devices_role",
+            "role",
+        ),
+        Index(
+            "ix_devices_family",
+            "device_family",
+        ),
+        Index(
+            "ix_devices_zone_id",
+            "zone_id",
+        ),
     )
 
 
@@ -245,5 +254,48 @@ class ReadingRow(Base):
             "ix_sensor_readings_device_recorded_at",
             "device_id",
             text("recorded_at DESC"),
+        ),
+    )
+
+
+class AutomationRuleRow(Base):
+    __tablename__ = "automation_rules"
+
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+
+    location_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(
+            "locations.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+    )
+
+    strategy_key: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    parameters: Mapped[dict] = mapped_column(
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "location_id",
+            name="uq_automation_rules_location_id",
         ),
     )

@@ -49,19 +49,6 @@ def test_read_inserts_sensor_reading():
 
     device_id = device["id"]
 
-    before_response = client.get(
-        f"/api/sensors/{device_id}/readings?limit=100"
-    )
-
-    assert (
-        before_response.status_code
-        == 200
-    )
-
-    before = (
-        before_response.json()
-    )
-
     response = client.post(
         f"/api/sensors/{device_id}/read"
     )
@@ -76,17 +63,21 @@ def test_read_inserts_sensor_reading():
     assert "unit" in body
     assert "recorded_at" in body
 
-    after_response = client.get(
+    history_response = client.get(
         f"/api/sensors/{device_id}/readings?limit=100"
     )
 
     assert (
-        after_response.status_code
+        history_response.status_code
         == 200
     )
 
-    after = (
-        after_response.json()
+    history = (
+        history_response.json()
     )
 
-    assert len(after) > len(before)
+    assert any(
+        reading["recorded_at"]
+        == body["recorded_at"]
+        for reading in history
+    )

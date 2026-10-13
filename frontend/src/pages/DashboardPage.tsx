@@ -1,8 +1,9 @@
 import { useState } from "react";
 
+import LocationConfigWizard from "../components/config/LocationConfigWizard";
 import DeviceFamilySwitcher from "../components/devices/DeviceFamilySwitcher";
 import DeviceList from "../components/devices/DeviceList";
-import LocationConfigWizard from "../components/config/LocationConfigWizard";
+import StrategyPanel from "../features/automation/StrategyPanel";
 import SensorList from "../features/sensors/SensorList";
 import type { DeviceFamily } from "../services/api";
 
@@ -29,7 +30,9 @@ const sections = [
 
 export default function DashboardPage() {
   const [family, setFamily] =
-    useState<DeviceFamily>("simulation");
+    useState<DeviceFamily>(
+      "simulation",
+    );
 
   const [
     locationRefreshKey,
@@ -122,21 +125,47 @@ export default function DashboardPage() {
 
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {sections.map((section) => (
-          <section
-            key={section.id}
-            id={section.id}
-            className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <h3 className="text-lg font-semibold text-slate-900">
-              {section.title}
-            </h3>
+        {sections.map((section) => {
+          if (section.id === "automation") {
+            return (
+              <section
+                key={section.id}
+                id={section.id}
+                className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:col-span-2 lg:col-span-3"
+              >
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Automation
+                </h3>
 
-            <p className="mt-2 text-sm text-slate-500">
-              Placeholder for later phases.
-            </p>
-          </section>
-        ))}
+                <p className="mt-2 mb-5 text-sm text-slate-500">
+                  Choose a strategy for a location and evaluate it using the latest stored sensor readings.
+                </p>
+
+                <StrategyPanel
+                  refreshKey={
+                    locationRefreshKey
+                  }
+                />
+              </section>
+            );
+          }
+
+          return (
+            <section
+              key={section.id}
+              id={section.id}
+              className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <h3 className="text-lg font-semibold text-slate-900">
+                {section.title}
+              </h3>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Placeholder for later phases.
+              </p>
+            </section>
+          );
+        })}
       </div>
     </div>
   );
