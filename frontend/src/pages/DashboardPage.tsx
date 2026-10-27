@@ -4,28 +4,9 @@ import LocationConfigWizard from "../components/config/LocationConfigWizard";
 import DeviceFamilySwitcher from "../components/devices/DeviceFamilySwitcher";
 import DeviceList from "../components/devices/DeviceList";
 import StrategyPanel from "../features/automation/StrategyPanel";
+import OverviewPanel from "../features/overview/OverviewPanel";
 import SensorList from "../features/sensors/SensorList";
 import type { DeviceFamily } from "../services/api";
-
-
-const sections = [
-  {
-    id: "automation",
-    title: "Automation",
-  },
-  {
-    id: "overview",
-    title: "Overview",
-  },
-  {
-    id: "controls",
-    title: "Controls",
-  },
-  {
-    id: "events",
-    title: "Events",
-  },
-];
 
 
 export default function DashboardPage() {
@@ -38,6 +19,13 @@ export default function DashboardPage() {
     locationRefreshKey,
     setLocationRefreshKey,
   ] = useState(0);
+
+
+  function handleLocationsChanged() {
+    setLocationRefreshKey(
+      (current) => current + 1,
+    );
+  }
 
 
   return (
@@ -86,10 +74,8 @@ export default function DashboardPage() {
         </div>
 
         <LocationConfigWizard
-          onLocationsChanged={() =>
-            setLocationRefreshKey(
-              (current) => current + 1,
-            )
+          onLocationsChanged={
+            handleLocationsChanged
           }
         />
       </section>
@@ -109,7 +95,6 @@ export default function DashboardPage() {
           </p>
         </div>
 
-
         <div className="space-y-6">
           <DeviceFamilySwitcher
             selectedFamily={family}
@@ -118,54 +103,85 @@ export default function DashboardPage() {
 
           <DeviceList
             family={family}
-            refreshKey={locationRefreshKey}
+            refreshKey={
+              locationRefreshKey
+            }
           />
         </div>
       </section>
 
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {sections.map((section) => {
-          if (section.id === "automation") {
-            return (
-              <section
-                key={section.id}
-                id={section.id}
-                className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm md:col-span-2 lg:col-span-3"
-              >
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Automation
-                </h3>
+      <section
+        id="automation"
+        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-slate-900">
+            Automation
+          </h3>
 
-                <p className="mt-2 mb-5 text-sm text-slate-500">
-                  Choose a strategy for a location and evaluate it using the latest stored sensor readings.
-                </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Choose and evaluate the location automation strategy.
+          </p>
+        </div>
 
-                <StrategyPanel
-                  refreshKey={
-                    locationRefreshKey
-                  }
-                />
-              </section>
-            );
+        <StrategyPanel
+          refreshKey={
+            locationRefreshKey
           }
+        />
+      </section>
 
-          return (
-            <section
-              key={section.id}
-              id={section.id}
-              className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-            >
-              <h3 className="text-lg font-semibold text-slate-900">
-                {section.title}
-              </h3>
 
-              <p className="mt-2 text-sm text-slate-500">
-                Placeholder for later phases.
-              </p>
-            </section>
-          );
-        })}
+      <section
+        id="overview"
+        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-slate-900">
+            Overview
+          </h3>
+
+          <p className="mt-1 text-sm text-slate-500">
+            One current snapshot of the selected location.
+          </p>
+        </div>
+
+        <OverviewPanel
+          refreshKey={
+            locationRefreshKey
+          }
+        />
+      </section>
+
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <section
+          id="controls"
+          className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <h3 className="text-lg font-semibold text-slate-900">
+            Controls
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Placeholder for later phases.
+          </p>
+        </section>
+
+
+        <section
+          id="events"
+          className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
+          <h3 className="text-lg font-semibold text-slate-900">
+            Events
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Placeholder for later phases.
+          </p>
+        </section>
       </div>
     </div>
   );

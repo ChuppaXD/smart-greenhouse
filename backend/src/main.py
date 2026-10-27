@@ -7,9 +7,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 
-from application.automation.service import (
-    AutomationService,
-)
 from application.readings.sampler import (
     SimulationSampler,
 )
@@ -20,9 +17,6 @@ from infrastructure.adapters.sensors.selector import (
     SensorAdapterSelector,
 )
 from infrastructure.db import SessionLocal
-from infrastructure.persistence.automation_repository import (
-    AutomationRepository,
-)
 from infrastructure.persistence.device_repository import (
     DeviceRepository,
 )
@@ -41,6 +35,9 @@ from interfaces.api.health import (
 )
 from interfaces.api.locations import (
     router as locations_router,
+)
+from interfaces.api.overview import (
+    router as overview_router,
 )
 from interfaces.api.sensors import (
     router as sensors_router,
@@ -162,6 +159,10 @@ app.include_router(
 
 app.include_router(
     automation_router
+)
+
+app.include_router(
+    overview_router
 )
 
 
