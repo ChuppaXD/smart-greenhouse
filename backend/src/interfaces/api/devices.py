@@ -10,12 +10,18 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from application.devices.dto import DeviceDto
+from application.devices.dto import (
+    ActuatorTransitionRequestDto,
+    DeviceDto,
+)
 from application.devices.family_service import (
     DeviceFamilyService,
 )
 from application.devices.mappers import (
     devices_to_dtos,
+)
+from application.devices.state_service import (
+    ActuatorStateService,
 )
 from application.locations.dto import (
     ZoneAssignmentRequestDto,
@@ -27,7 +33,13 @@ from application.readings.dto import (
     SamplingDto,
     SamplingUpdateDto,
 )
+from domain.actuators.state import (
+    IllegalTransitionError,
+)
 from infrastructure.db import get_db
+from infrastructure.persistence.actuator_state_repository import (
+    ActuatorStateRepository,
+)
 from infrastructure.persistence.device_repository import (
     DeviceRepository,
 )
@@ -59,12 +71,27 @@ def get_zone_assignment_service(
     )
 
 
+def get_actuator_state_service(
+    db: Session = Depends(get_db),
+) -> ActuatorStateService:
+    return ActuatorStateService(
+        device_repository=(
+            DeviceRepository(db)
+        ),
+        state_repository=(
+            ActuatorStateRepository(db)
+        ),
+    )
+
+
 @router.get(
     "",
     response_model=list[DeviceDto],
 )
 def list_devices(
-    family: str | None = Query(default=None),
+    family: str | None = Query(
+        default=None
+    ),
     role: (
         Literal["sensor", "actuator"]
         | None
@@ -149,7 +176,10 @@ def update_sampling(
     request: SamplingUpdateDto,
     db: Session = Depends(get_db),
 ):
-    if request.sampling_interval_seconds < 5:
+    if (
+        request.sampling_interval_seconds
+        < 5
+    ):
         raise HTTPException(
             status_code=(
                 status.HTTP_400_BAD_REQUEST
@@ -192,3 +222,37 @@ def update_sampling(
             device.tracking_enabled
         ),
     )
+
+
+@router.post(
+    "/{device_id}/transition",
+    response_model=DeviceDto,
+)
+def transition_actuator(
+    device_id: UUID,
+    request: ActuatorTransitionRequestDto,
+    service: ActuatorStateService = Depends(
+        get_actuator_state_service
+    ),
+):
+    try:
+        return service.transition(
+            device_id=device_id,
+            target=request.target,
+        )
+
+    except LookupError as exc:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_404_NOT_FOUND
+            ),
+            detail=str(exc),
+        ) from exc
+
+    except IllegalTransitionError as exc:
+        raise HTTPException(
+            status_code=(
+                status.HTTP_409_CONFLICT
+            ),
+            detail=str(exc),
+        ) from exc

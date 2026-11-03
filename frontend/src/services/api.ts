@@ -217,6 +217,8 @@ export type DeviceDto = {
   location_id: string | null;
   sampling_interval_seconds: number;
   tracking_enabled: boolean;
+  state: string;
+  allowed_commands: string[];
 };
 
 
@@ -283,6 +285,37 @@ export async function provisionDeviceFamily(
   }
 
   return response.json() as Promise<DeviceDto[]>;
+}
+
+
+export async function transitionActuator(
+  deviceId: string,
+  target: string,
+): Promise<DeviceDto> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/devices/${deviceId}/transition`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        target,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const message =
+      await getErrorMessage(
+        response,
+        `Failed to transition actuator: ${response.status}`,
+      );
+
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<DeviceDto>;
 }
 
 

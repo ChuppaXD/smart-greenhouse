@@ -1,4 +1,5 @@
 from application.devices.dto import DeviceDto
+from domain.actuators.context import ActuatorContext
 from domain.devices.entity import Device
 
 
@@ -9,6 +10,18 @@ def device_to_dto(
         raise ValueError(
             "Cannot map an unpersisted device to DTO"
         )
+
+    if device.role == "actuator":
+        context = ActuatorContext.from_state_name(
+            device_type=device.device_type,
+            state=device.state,
+        )
+
+        allowed_commands = (
+            context.allowed_commands()
+        )
+    else:
+        allowed_commands = []
 
     return DeviceDto(
         id=device.id,
@@ -25,6 +38,8 @@ def device_to_dto(
         tracking_enabled=(
             device.tracking_enabled
         ),
+        state=device.state,
+        allowed_commands=allowed_commands,
     )
 
 

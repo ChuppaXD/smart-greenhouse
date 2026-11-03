@@ -26,6 +26,31 @@ type ZoneOption = {
 };
 
 
+function stateBadgeClass(
+  state: string,
+): string {
+  switch (state) {
+    case "idle":
+      return "bg-slate-100 text-slate-700";
+
+    case "running":
+      return "bg-emerald-100 text-emerald-700";
+
+    case "error":
+      return "bg-red-100 text-red-700";
+
+    case "maintenance":
+      return "bg-amber-100 text-amber-800";
+
+    case "off":
+      return "bg-gray-200 text-gray-700";
+
+    default:
+      return "bg-slate-100 text-slate-600";
+  }
+}
+
+
 export default function DeviceList({
   family,
   refreshKey = 0,
@@ -46,27 +71,41 @@ export default function DeviceList({
   const [assigningDeviceId, setAssigningDeviceId] =
     useState<string | null>(null);
 
+  const [refreshing, setRefreshing] =
+    useState(false);
+
   const [error, setError] =
     useState<string | null>(null);
 
 
-  async function loadDevices() {
+  async function loadDevices(
+    showInitialLoading = true,
+  ) {
     try {
       setError(null);
-      setLoading(true);
+
+      if (showInitialLoading) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
 
       const [
         deviceData,
         locationData,
       ] = await Promise.all([
-        fetchDevices({ family }),
+        fetchDevices({
+          family,
+        }),
         fetchLocations(),
       ]);
 
       const configs =
         await Promise.all(
           locationData.map(
-            (location: LocationSummaryDto) =>
+            (
+              location: LocationSummaryDto,
+            ) =>
               fetchLocationConfig(
                 location.id,
               ),
@@ -98,6 +137,7 @@ export default function DeviceList({
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }
 
@@ -108,10 +148,10 @@ export default function DeviceList({
       setProvisioning(true);
 
       await provisionDeviceFamily(
-        family,
+        family
       );
 
-      await loadDevices();
+      await loadDevices(false);
     } catch (err) {
       setError(
         err instanceof Error
@@ -130,13 +170,14 @@ export default function DeviceList({
   ) {
     try {
       setError(null);
+
       setAssigningDeviceId(
-        device.id,
+        device.id
       );
 
       await assignDeviceToZone(
         device.id,
-        zoneId,
+        zoneId
       );
 
       const selectedOption =
@@ -168,7 +209,7 @@ export default function DeviceList({
       );
     } finally {
       setAssigningDeviceId(
-        null,
+        null
       );
     }
   }
@@ -190,18 +231,33 @@ export default function DeviceList({
 
   return (
     <div className="space-y-6">
-      <button
-        type="button"
-        onClick={() =>
-          void handleProvision()
-        }
-        disabled={provisioning}
-        className="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {provisioning
-          ? "Provisioning..."
-          : `Provision ${family} family`}
-      </button>
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={() =>
+            void handleProvision()
+          }
+          disabled={provisioning}
+          className="rounded-lg bg-slate-900 px-4 py-2 font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {provisioning
+            ? "Provisioning..."
+            : `Provision ${family} family`}
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            void loadDevices(false)
+          }
+          disabled={refreshing}
+          className="rounded-lg border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {refreshing
+            ? "Refreshing..."
+            : "Refresh devices"}
+        </button>
+      </div>
 
 
       {error && (
@@ -230,6 +286,13 @@ export default function DeviceList({
                   device.zone_id,
               );
 
+            const commandText =
+              device.allowed_commands.length > 0
+                ? device.allowed_commands.join(
+                    ", "
+                  )
+                : "No actuator commands available in this state.";
+
             return (
               <article
                 key={device.id}
@@ -255,8 +318,41 @@ export default function DeviceList({
                     <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
                       {device.device_family}
                     </span>
+
+                    {device.role ===
+                      "actuator" && (
+                      <span
+                        title={
+                          `Allowed commands now: ` +
+                          commandText
+                        }
+                        className={
+                          `rounded-full px-3 py-1 ` +
+                          `text-xs font-semibold ` +
+                          stateBadgeClass(
+                            device.state
+                          )
+                        }
+                      >
+                        {device.state}
+                      </span>
+                    )}
                   </div>
                 </div>
+
+
+                {device.role ===
+                  "actuator" && (
+                  <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Allowed commands
+                    </p>
+
+                    <p className="mt-1 text-sm text-slate-700">
+                      {commandText}
+                    </p>
+                  </div>
+                )}
 
 
                 <div className="mt-5">
@@ -272,7 +368,7 @@ export default function DeviceList({
                       void handleAssignment(
                         device,
                         event.target.value ||
-                          null,
+                          null
                       )
                     }
                     disabled={
@@ -303,7 +399,7 @@ export default function DeviceList({
                         {} as Record<
                           string,
                           ZoneOption[]
-                        >,
+                        >
                       ),
                     ).map(
                       ([
@@ -320,7 +416,7 @@ export default function DeviceList({
                         >
                           {options.map(
                             (
-                              option,
+                              option
                             ) => (
                               <option
                                 key={
@@ -330,14 +426,18 @@ export default function DeviceList({
                                   option.zoneId
                                 }
                               >
-                                {option.locationName}
+                                {
+                                  option.locationName
+                                }
                                 {" — "}
-                                {option.zoneName}
+                                {
+                                  option.zoneName
+                                }
                               </option>
-                            ),
+                            )
                           )}
                         </optgroup>
-                      ),
+                      )
                     )}
                   </select>
 
@@ -360,7 +460,7 @@ export default function DeviceList({
                     {JSON.stringify(
                       device.default_config,
                       null,
-                      2,
+                      2
                     )}
                   </pre>
                 </div>

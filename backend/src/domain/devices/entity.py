@@ -14,3 +14,4 @@ class Device:
     location_id: UUID | None = None
     sampling_interval_seconds: int = 300
     tracking_enabled: bool = True
+    state: str = "n/a"

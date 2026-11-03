@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from domain.devices.entity import Device
 from domain.sensors.entity import Sensor
 from infrastructure.persistence.models import (
+    ActuatorStateRow,
     DeviceRow,
     ZoneRow,
 )
@@ -27,7 +28,9 @@ class DeviceRepository:
             role=device.role,
             device_family=device.device_family,
             sampling_interval_seconds=(
-                self._resolve_sampling_interval(device)
+                self._resolve_sampling_interval(
+                    device
+                )
             ),
             tracking_enabled=device.tracking_enabled,
             zone_id=device.zone_id,
@@ -37,10 +40,22 @@ class DeviceRepository:
         )
 
         self._session.add(row)
+        self._session.flush()
+
+        if device.role == "actuator":
+            self._session.add(
+                ActuatorStateRow(
+                    device_id=row.id,
+                    state="idle",
+                )
+            )
+
         self._session.commit()
         self._session.refresh(row)
 
-        return self._to_device(row)
+        return self._get_device_with_state(
+            row.id
+        )
 
     def save_devices(
         self,
@@ -52,7 +67,9 @@ class DeviceRepository:
                 role=device.role,
                 device_family=device.device_family,
                 sampling_interval_seconds=(
-                    self._resolve_sampling_interval(device)
+                    self._resolve_sampling_interval(
+                        device
+                    )
                 ),
                 tracking_enabled=device.tracking_enabled,
                 zone_id=device.zone_id,
@@ -64,13 +81,26 @@ class DeviceRepository:
         ]
 
         self._session.add_all(rows)
+        self._session.flush()
+
+        for row, device in zip(
+            rows,
+            devices,
+        ):
+            if device.role == "actuator":
+                self._session.add(
+                    ActuatorStateRow(
+                        device_id=row.id,
+                        state="idle",
+                    )
+                )
+
         self._session.commit()
 
-        for row in rows:
-            self._session.refresh(row)
-
         return [
-            self._to_device(row)
+            self._get_device_with_state(
+                row.id
+            )
             for row in rows
         ]
 
@@ -80,7 +110,17 @@ class DeviceRepository:
         device_family: str | None = None,
         role: str | None = None,
     ) -> list[Device]:
-        statement = select(DeviceRow)
+        statement = (
+            select(
+                DeviceRow,
+                ActuatorStateRow,
+            )
+            .outerjoin(
+                ActuatorStateRow,
+                ActuatorStateRow.device_id
+                == DeviceRow.id,
+            )
+        )
 
         if device_family is not None:
             statement = statement.where(
@@ -98,26 +138,27 @@ class DeviceRepository:
         )
 
         rows = (
-            self._session.execute(statement)
-            .scalars()
+            self._session.execute(
+                statement
+            )
             .all()
         )
 
         return [
-            self._to_device(row)
-            for row in rows
+            self._to_device(
+                row,
+                state_row,
+            )
+            for row, state_row in rows
         ]
 
     def get_device(
         self,
         device_id: UUID,
     ) -> Device | None:
-        row = self.get_device_row(device_id)
-
-        if row is None:
-            return None
-
-        return self._to_device(row)
+        return self._get_device_with_state(
+            device_id
+        )
 
     def update_sampling(
         self,
@@ -125,7 +166,9 @@ class DeviceRepository:
         sampling_interval_seconds: int,
         tracking_enabled: bool,
     ) -> Device | None:
-        row = self.get_device_row(device_id)
+        row = self.get_device_row(
+            device_id
+        )
 
         if row is None:
             return None
@@ -134,6 +177,7 @@ class DeviceRepository:
             row.sampling_interval_seconds = (
                 sampling_interval_seconds
             )
+
             row.tracking_enabled = (
                 tracking_enabled
             )
@@ -145,7 +189,9 @@ class DeviceRepository:
             self._session.rollback()
             raise
 
-        return self._to_device(row)
+        return self._get_device_with_state(
+            device_id
+        )
 
     # Phase 2 compatibility
     def save_sensor(
@@ -173,12 +219,16 @@ class DeviceRepository:
         return Sensor(
             id=row.id,
             device_type=row.device_type,
-            display_name=row.display_name or "",
+            display_name=(
+                row.display_name or ""
+            ),
             default_config=row.default_config,
             sampling_interval_seconds=(
                 row.sampling_interval_seconds
             ),
-            tracking_enabled=row.tracking_enabled,
+            tracking_enabled=(
+                row.tracking_enabled
+            ),
         )
 
     # Phase 2 compatibility
@@ -194,7 +244,9 @@ class DeviceRepository:
         )
 
         rows = (
-            self._session.execute(statement)
+            self._session.execute(
+                statement
+            )
             .scalars()
             .all()
         )
@@ -203,12 +255,18 @@ class DeviceRepository:
             Sensor(
                 id=row.id,
                 device_type=row.device_type,
-                display_name=row.display_name or "",
-                default_config=row.default_config,
+                display_name=(
+                    row.display_name or ""
+                ),
+                default_config=(
+                    row.default_config
+                ),
                 sampling_interval_seconds=(
                     row.sampling_interval_seconds
                 ),
-                tracking_enabled=row.tracking_enabled,
+                tracking_enabled=(
+                    row.tracking_enabled
+                ),
             )
             for row in rows
         ]
@@ -246,7 +304,9 @@ class DeviceRepository:
         )
 
         return (
-            self._session.execute(statement)
+            self._session.execute(
+                statement
+            )
             .scalars()
             .first()
         )
@@ -296,7 +356,15 @@ class DeviceRepository:
         zone_id: UUID,
     ) -> list[Device]:
         statement = (
-            select(DeviceRow)
+            select(
+                DeviceRow,
+                ActuatorStateRow,
+            )
+            .outerjoin(
+                ActuatorStateRow,
+                ActuatorStateRow.device_id
+                == DeviceRow.id,
+            )
             .where(
                 DeviceRow.zone_id == zone_id
             )
@@ -306,14 +374,18 @@ class DeviceRepository:
         )
 
         rows = (
-            self._session.execute(statement)
-            .scalars()
+            self._session.execute(
+                statement
+            )
             .all()
         )
 
         return [
-            self._to_device(row)
-            for row in rows
+            self._to_device(
+                row,
+                state_row,
+            )
+            for row, state_row in rows
         ]
 
     @staticmethod
@@ -322,7 +394,9 @@ class DeviceRepository:
     ) -> int:
         configured = (
             device.default_config or {}
-        ).get("sampling_interval_seconds")
+        ).get(
+            "sampling_interval_seconds"
+        )
 
         if isinstance(
             configured,
@@ -340,16 +414,65 @@ class DeviceRepository:
 
         return device.sampling_interval_seconds
 
+    def _get_device_with_state(
+        self,
+        device_id: UUID,
+    ) -> Device | None:
+        statement = (
+            select(
+                DeviceRow,
+                ActuatorStateRow,
+            )
+            .outerjoin(
+                ActuatorStateRow,
+                ActuatorStateRow.device_id
+                == DeviceRow.id,
+            )
+            .where(
+                DeviceRow.id == device_id
+            )
+        )
+
+        result = (
+            self._session.execute(
+                statement
+            )
+            .first()
+        )
+
+        if result is None:
+            return None
+
+        row, state_row = result
+
+        return self._to_device(
+            row,
+            state_row,
+        )
+
     @staticmethod
     def _to_device(
         row: DeviceRow,
+        state_row: ActuatorStateRow | None = None,
     ) -> Device:
+        state = "n/a"
+
+        if row.role == "actuator":
+            if state_row is None:
+                raise LookupError(
+                    f"Actuator state for device {row.id} was not found."
+                )
+
+            state = state_row.state
+
         return Device(
             id=row.id,
             device_type=row.device_type,
             role=row.role,
             device_family=row.device_family,
-            display_name=row.display_name or "",
+            display_name=(
+                row.display_name or ""
+            ),
             default_config=row.default_config,
             zone_id=row.zone_id,
             location_id=row.location_id,
@@ -359,4 +482,5 @@ class DeviceRepository:
             tracking_enabled=(
                 row.tracking_enabled
             ),
+            state=state,
         )
