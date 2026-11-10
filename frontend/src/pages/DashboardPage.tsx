@@ -4,6 +4,7 @@ import LocationConfigWizard from "../components/config/LocationConfigWizard";
 import DeviceFamilySwitcher from "../components/devices/DeviceFamilySwitcher";
 import DeviceList from "../components/devices/DeviceList";
 import StrategyPanel from "../features/automation/StrategyPanel";
+import ExecutionLog from "../features/executions/ExecutionLog";
 import OverviewPanel from "../features/overview/OverviewPanel";
 import SensorList from "../features/sensors/SensorList";
 import type { DeviceFamily } from "../services/api";
@@ -154,6 +155,26 @@ export default function DashboardPage() {
         />
       </section>
 
+
+      <section
+        id="execution-log"
+        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-slate-900">
+            Actuator execution log
+          </h3>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Recent actuator attempts persisted by
+            the Phase 9 decorators.
+          </p>
+        </div>
+
+        <ExecutionLog
+          refreshKey={locationRefreshKey}
+        />
+      </section>
 
       <div className="grid gap-6 md:grid-cols-2">
         <section

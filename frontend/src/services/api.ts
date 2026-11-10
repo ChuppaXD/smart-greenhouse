@@ -201,6 +201,38 @@ export async function updateDeviceSampling(
 }
 
 
+export type ActuatorExecutionDto = {
+  id: string;
+  device_id: string;
+  success: boolean;
+  policy_applied: string[];
+  message: string | null;
+  created_at: string;
+};
+
+
+export async function fetchActuatorExecutions(
+  limit = 20,
+): Promise<ActuatorExecutionDto[]> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/actuators/executions?limit=${limit}`,
+  );
+
+  if (!response.ok) {
+    const message =
+      await getErrorMessage(
+        response,
+        `Failed to load actuator executions: ${response.status}`,
+      );
+
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<
+    ActuatorExecutionDto[]
+  >;
+}
+
 export type DeviceFamily =
   | "simulation"
   | "edge";

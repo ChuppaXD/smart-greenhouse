@@ -42,6 +42,9 @@ from interfaces.api.overview import (
 from interfaces.api.sensors import (
     router as sensors_router,
 )
+from interfaces.api.actuators import (
+    router as actuators_router,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -155,6 +158,10 @@ app.include_router(
 
 app.include_router(
     locations_router
+)
+
+app.include_router(
+    actuators_router
 )
 
 app.include_router(

@@ -14,6 +14,7 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
     text,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -324,4 +325,44 @@ class AutomationRuleRow(Base):
             "location_id",
             name="uq_automation_rules_location_id",
         ),
+    )
+
+
+class ActuatorExecutionLogRow(Base):
+    __tablename__ = "actuator_execution_log"
+
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+
+    device_id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(
+            "devices.id",
+            ondelete="CASCADE",
+        ),
+        nullable=False,
+    )
+
+    success: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+    )
+
+    policy_applied: Mapped[list[str]] = mapped_column(
+        JSONB,
+        nullable=False,
+    )
+
+    message: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
     )
