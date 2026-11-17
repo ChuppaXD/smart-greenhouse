@@ -602,3 +602,149 @@ export async function fetchZoneDevices(
 
   return response.json() as Promise<DeviceDto[]>;
 }
+
+
+export type ActuatorDeviceDto = DeviceDto;
+
+export type CommandRequestDto = {
+  command_type: string;
+  device_id: string;
+  payload?: Record<string, unknown>;
+};
+
+export type CommandLogDto = {
+  id: string;
+  command_type: string;
+  device_id: string;
+  payload: Record<string, unknown>;
+  status: "success" | "failed" | "rejected";
+  error_message: string | null;
+  created_at: string;
+};
+
+const phase10BaseUrl = (
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
+).replace(/\/+$/, "");
+
+function phase10Url(path: string): string {
+  if (
+    phase10BaseUrl.endsWith("/api") &&
+    path.startsWith("/api/")
+  ) {
+    return phase10BaseUrl + path.slice(4);
+  }
+
+  return phase10BaseUrl + path;
+}
+
+async function phase10ReadJson(
+  response: Response
+): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function phase10ErrorMessage(
+  response: Response,
+  data: unknown
+): string {
+  if (data && typeof data === "object") {
+    const body = data as Record<string, unknown>;
+
+    if (typeof body.detail === "string") {
+      return body.detail;
+    }
+
+    if (typeof body.error_message === "string") {
+      return body.error_message;
+    }
+
+    if (body.detail && typeof body.detail === "object") {
+      const detail = body.detail as Record<string, unknown>;
+
+      if (typeof detail.error_message === "string") {
+        return detail.error_message;
+      }
+    }
+  }
+
+  return `Request failed (HTTP ${response.status})`;
+}
+
+// GET /api/devices?role=actuator
+export async function fetchActuatorDevices(): Promise<
+  ActuatorDeviceDto[]
+> {
+  const response = await fetch(
+    phase10Url("/api/devices?role=actuator")
+  );
+
+  const data = await phase10ReadJson(response);
+
+  if (!response.ok) {
+    throw new Error(phase10ErrorMessage(response, data));
+  }
+
+  return data as ActuatorDeviceDto[];
+}
+
+// POST /api/commands
+export async function executeCommand(
+  request: CommandRequestDto
+): Promise<CommandLogDto> {
+  const response = await fetch(
+    phase10Url("/api/commands"),
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        command_type: request.command_type,
+        device_id: request.device_id,
+        payload: request.payload ?? {},
+      }),
+    }
+  );
+
+  const data = await phase10ReadJson(response);
+
+  // A rejected command still has a saved command_log row.
+  // Handle both a direct 409 response body and a
+  // FastAPI HTTPException body containing "detail".
+  if (response.status === 409) {
+    if (data && typeof data === "object" && "detail" in data) {
+      return (
+        data as { detail: CommandLogDto }
+      ).detail;
+    }
+
+    return data as CommandLogDto;
+  }
+
+  if (!response.ok) {
+    throw new Error(phase10ErrorMessage(response, data));
+  }
+
+  return data as CommandLogDto;
+}
+
+// GET /api/commands?limit=50
+export async function fetchCommandHistory(
+  limit = 50
+): Promise<CommandLogDto[]> {
+  const response = await fetch(
+    phase10Url(`/api/commands?limit=${limit}`)
+  );
+
+  const data = await phase10ReadJson(response);
+
+  if (!response.ok) {
+    throw new Error(phase10ErrorMessage(response, data));
+  }
+
+  return data as CommandLogDto[];
+}

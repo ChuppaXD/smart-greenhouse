@@ -46,4 +46,4 @@ A zone with no assigned moisture sensor does not use another zone's sensor. It p
 A third strategy could be added by creating another class that implements AutomationStrategy, for e.g. an EnergySavingStrategy.
 It would implement its own decide(context) method and be added to the strategy lookup.
 
-The application service and API would not need separate if blocks for the new algorithm.
+The application service and API would not need separate "if" blocks for the new algorithm.

@@ -30,6 +30,7 @@ _COMMAND_NAMES: dict[
         "enter_maintenance": "enter_maintenance",
         "exit_maintenance": "exit_maintenance",
         "reset_error": "reset_error",
+        "set_light_level": "set_light_level",
     },
 }
 
@@ -94,6 +95,6 @@ class ActuatorContext:
 
         return [
             command_names[key]
-            for key
-            in self.current_state.command_keys
+            for key in self.current_state.command_keys
+            if key in command_names
         ]

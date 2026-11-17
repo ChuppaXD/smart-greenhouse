@@ -1,11 +1,21 @@
 import asyncio
 import logging
-from contextlib import asynccontextmanager, suppress
-from datetime import datetime, timezone
+from contextlib import (
+    asynccontextmanager,
+    suppress,
+)
+from datetime import (
+    datetime,
+    timezone,
+)
 
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from scalar_fastapi import get_scalar_api_reference
+from fastapi.middleware.cors import (
+    CORSMiddleware,
+)
+from scalar_fastapi import (
+    get_scalar_api_reference,
+)
 
 from application.readings.sampler import (
     SimulationSampler,
@@ -16,7 +26,9 @@ from application.readings.service import (
 from infrastructure.adapters.sensors.selector import (
     SensorAdapterSelector,
 )
-from infrastructure.db import SessionLocal
+from infrastructure.db import (
+    SessionLocal,
+)
 from infrastructure.persistence.device_repository import (
     DeviceRepository,
 )
@@ -24,8 +36,14 @@ from infrastructure.persistence.reading_repository import (
     ReadingRepository,
 )
 from infrastructure.settings import settings
+from interfaces.api.actuators import (
+    router as actuators_router,
+)
 from interfaces.api.automation import (
     router as automation_router,
+)
+from interfaces.api.commands import (
+    router as commands_router,
 )
 from interfaces.api.devices import (
     router as devices_router,
@@ -42,9 +60,6 @@ from interfaces.api.overview import (
 from interfaces.api.sensors import (
     router as sensors_router,
 )
-from interfaces.api.actuators import (
-    router as actuators_router,
-)
 
 
 logger = logging.getLogger(__name__)
@@ -54,25 +69,33 @@ def run_sampler_once() -> None:
     db = SessionLocal()
 
     try:
-        device_repository = DeviceRepository(
-            db
+        device_repository = (
+            DeviceRepository(db)
         )
 
-        reading_repository = ReadingRepository(
-            db
+        reading_repository = (
+            ReadingRepository(db)
         )
 
         ingest = ReadingIngest(
-            device_repository=device_repository,
-            reading_repository=reading_repository,
+            device_repository=(
+                device_repository
+            ),
+            reading_repository=(
+                reading_repository
+            ),
             adapter_selector=(
                 SensorAdapterSelector()
             ),
         )
 
         sampler = SimulationSampler(
-            device_repository=device_repository,
-            reading_repository=reading_repository,
+            device_repository=(
+                device_repository
+            ),
+            reading_repository=(
+                reading_repository
+            ),
             reading_ingest=ingest,
         )
 
@@ -103,8 +126,10 @@ async def sampler_loop() -> None:
 async def lifespan(
     app: FastAPI,
 ):
-    sampler_task = asyncio.create_task(
-        sampler_loop()
+    sampler_task = (
+        asyncio.create_task(
+            sampler_loop()
+        )
     )
 
     try:
@@ -130,7 +155,10 @@ app = FastAPI(
 
 origins = [
     origin.strip()
-    for origin in settings.cors_origins.split(",")
+    for origin in (
+        settings.cors_origins
+        .split(",")
+    )
     if origin.strip()
 ]
 
@@ -162,6 +190,10 @@ app.include_router(
 
 app.include_router(
     actuators_router
+)
+
+app.include_router(
+    commands_router
 )
 
 app.include_router(

@@ -1,5 +1,6 @@
 import { useState } from "react";
 
+import CommandPanel from "../components/commands/CommandPanel";
 import LocationConfigWizard from "../components/config/LocationConfigWizard";
 import DeviceFamilySwitcher from "../components/devices/DeviceFamilySwitcher";
 import DeviceList from "../components/devices/DeviceList";
@@ -13,7 +14,7 @@ import type { DeviceFamily } from "../services/api";
 export default function DashboardPage() {
   const [family, setFamily] =
     useState<DeviceFamily>(
-      "simulation",
+      "simulation"
     );
 
   const [
@@ -24,7 +25,7 @@ export default function DashboardPage() {
 
   function handleLocationsChanged() {
     setLocationRefreshKey(
-      (current) => current + 1,
+      (current) => current + 1
     );
   }
 
@@ -166,44 +167,52 @@ export default function DashboardPage() {
           </h3>
 
           <p className="mt-1 text-sm text-slate-500">
-            Recent actuator attempts persisted by
-            the Phase 9 decorators.
+            Recent actuator attempts persisted by the Phase 9 decorators.
           </p>
         </div>
 
         <ExecutionLog
-          refreshKey={locationRefreshKey}
+          refreshKey={
+            locationRefreshKey
+          }
         />
       </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <section
-          id="controls"
-          className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-        >
-          <h3 className="text-lg font-semibold text-slate-900">
+
+      <section
+        id="controls"
+        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <div className="mb-6">
+          <h3 className="text-xl font-semibold text-slate-900">
             Controls
           </h3>
 
-          <p className="mt-2 text-sm text-slate-500">
-            Placeholder for later phases.
+          <p className="mt-1 text-sm text-slate-500">
+            Execute actuator commands through the Command pattern.
           </p>
-        </section>
+        </div>
+
+        <CommandPanel
+          refreshKey={
+            locationRefreshKey
+          }
+        />
+      </section>
 
 
-        <section
-          id="events"
-          className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-        >
-          <h3 className="text-lg font-semibold text-slate-900">
-            Events
-          </h3>
+      <section
+        id="events"
+        className="min-h-40 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
+      >
+        <h3 className="text-lg font-semibold text-slate-900">
+          Events
+        </h3>
 
-          <p className="mt-2 text-sm text-slate-500">
-            Placeholder for later phases.
-          </p>
-        </section>
-      </div>
+        <p className="mt-2 text-sm text-slate-500">
+          Placeholder for later phases.
+        </p>
+      </section>
     </div>
   );
 }

@@ -49,6 +49,7 @@ class RunningState(ActuatorState):
     )
     command_keys = (
         "stop",
+        "set_light_level",
     )
 
 
