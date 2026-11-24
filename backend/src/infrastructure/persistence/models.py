@@ -412,3 +412,87 @@ class CommandLogRow(Base):
         nullable=False,
         server_default=text("now()"),
     )
+
+
+class AlertRow(Base):
+    __tablename__ = "alerts"
+
+    id: Mapped[UUID] = mapped_column(
+        PGUUID(as_uuid=True),
+        primary_key=True,
+        default=uuid4,
+    )
+
+    location_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(
+            "locations.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+
+    zone_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(
+            "zones.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+
+    device_id: Mapped[UUID | None] = mapped_column(
+        PGUUID(as_uuid=True),
+        ForeignKey(
+            "devices.id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
+
+    severity: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+    )
+
+    message: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+    )
+
+    event_type: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(32),
+        nullable=False,
+        server_default=text("'active'"),
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+    )
+
+    acknowledged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_alerts_created_at",
+            "created_at",
+        ),
+        Index(
+            "ix_alerts_location_id",
+            "location_id",
+        ),
+        Index(
+            "ix_alerts_zone_id",
+            "zone_id",
+        ),
+    )

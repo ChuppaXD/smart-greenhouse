@@ -3,6 +3,10 @@ from uuid import UUID
 from application.devices.dto import DeviceDto
 from application.devices.mappers import device_to_dto
 from domain.actuators.context import ActuatorContext
+from domain.events.bus import EventBus
+from domain.events.events import (
+    ActuatorStateChanged,
+)
 from infrastructure.persistence.actuator_state_repository import (
     ActuatorStateRepository,
 )
@@ -16,9 +20,11 @@ class ActuatorStateService:
         self,
         device_repository: DeviceRepository,
         state_repository: ActuatorStateRepository,
+        event_bus: EventBus | None = None,
     ):
         self._devices = device_repository
         self._states = state_repository
+        self._event_bus = event_bus
 
     def get_status(
         self,
@@ -82,6 +88,16 @@ class ActuatorStateService:
             device_id=device_id,
             state=context.state,
         )
+
+        if self._event_bus is not None:
+            self._event_bus.publish(
+                ActuatorStateChanged(
+                    device_id=device_id,
+                    location_id=device.location_id,
+                    zone_id=device.zone_id,
+                    state=context.state,
+                )
+            )
 
         updated_device = (
             self._devices.get_device(

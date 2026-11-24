@@ -15,6 +15,11 @@ from domain.commands.invoker import (
 from domain.commands.registry import (
     command_for,
 )
+from domain.events.bus import EventBus
+from domain.events.events import (
+    ActuatorStateChanged,
+    CommandFailed,
+)
 from infrastructure.persistence.command_log_repository import (
     CommandLogEntry,
     CommandLogRepository,
@@ -47,6 +52,7 @@ class CommandService:
         command_log_repository: CommandLogRepository,
         port: ActuatorPort,
         invoker: CommandInvoker,
+        event_bus: EventBus | None = None,
     ) -> None:
         self._device_repository = (
             device_repository
@@ -62,6 +68,7 @@ class CommandService:
 
         self._port = port
         self._invoker = invoker
+        self._event_bus = event_bus
 
     def execute(
         self,
@@ -146,7 +153,7 @@ class CommandService:
             )
 
         except ActuatorPolicyViolationError as exc:
-            return (
+            entry = (
                 self._command_log_repository.record(
                     command_type=command_type,
                     device_id=device_id,
@@ -155,9 +162,20 @@ class CommandService:
                     error_message=str(exc),
                 )
             )
+            if self._event_bus is not None:
+                self._event_bus.publish(
+                    CommandFailed(
+                        device_id=device_id,
+                        location_id=device.location_id,
+                        zone_id=device.zone_id,
+                        message=str(exc),
+                        command_type=command_type,
+                    )
+                )
+            return entry
 
         except Exception as exc:
-            return (
+            entry = (
                 self._command_log_repository.record(
                     command_type=command_type,
                     device_id=device_id,
@@ -166,6 +184,17 @@ class CommandService:
                     error_message=str(exc),
                 )
             )
+            if self._event_bus is not None:
+                self._event_bus.publish(
+                    CommandFailed(
+                        device_id=device_id,
+                        location_id=device.location_id,
+                        zone_id=device.zone_id,
+                        message=str(exc),
+                        command_type=command_type,
+                    )
+                )
+            return entry
 
         # 7. Only after the decorated port
         # succeeds do we change lifecycle state.
@@ -182,6 +211,16 @@ class CommandService:
                 device_id,
                 command.target_state,
             )
+
+            if self._event_bus is not None:
+                self._event_bus.publish(
+                    ActuatorStateChanged(
+                        device_id=device_id,
+                        location_id=device.location_id,
+                        zone_id=device.zone_id,
+                        state=command.target_state,
+                    )
+                )
 
         # 8. Finally record success.
         return (

@@ -9,6 +9,7 @@ import ExecutionLog from "../features/executions/ExecutionLog";
 import OverviewPanel from "../features/overview/OverviewPanel";
 import SensorList from "../features/sensors/SensorList";
 import type { DeviceFamily } from "../services/api";
+import EventFeed from "../components/alerts/EventFeed";
 
 
 export default function DashboardPage() {
@@ -212,6 +213,7 @@ export default function DashboardPage() {
         <p className="mt-2 text-sm text-slate-500">
           Placeholder for later phases.
         </p>
+        <EventFeed />
       </section>
     </div>
   );

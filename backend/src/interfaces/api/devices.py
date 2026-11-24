@@ -37,6 +37,7 @@ from domain.actuators.state import (
     IllegalTransitionError,
 )
 from infrastructure.db import get_db
+from infrastructure.observer_wiring import event_bus
 from infrastructure.persistence.actuator_state_repository import (
     ActuatorStateRepository,
 )
@@ -81,6 +82,7 @@ def get_actuator_state_service(
         state_repository=(
             ActuatorStateRepository(db)
         ),
+        event_bus=event_bus,
     )
 
 

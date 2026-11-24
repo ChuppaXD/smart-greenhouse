@@ -26,6 +26,7 @@ from infrastructure.persistence.device_repository import (
 from infrastructure.persistence.reading_repository import (
     ReadingRepository,
 )
+from infrastructure.observer_wiring import event_bus
 
 
 router = APIRouter(
@@ -67,6 +68,7 @@ def get_reading_ingest(
         device_repository=DeviceRepository(db),
         reading_repository=ReadingRepository(db),
         adapter_selector=SensorAdapterSelector(),
+        event_bus=event_bus,
     )
 
 

@@ -35,6 +35,7 @@ from infrastructure.persistence.command_log_repository import (
 from infrastructure.persistence.device_repository import (
     DeviceRepository,
 )
+from infrastructure.observer_wiring import event_bus
 
 
 router = APIRouter(
@@ -58,6 +59,7 @@ def get_command_service(
         ),
         port=build_actuator_port(db),
         invoker=CommandInvoker(),
+        event_bus=event_bus,
     )
 
 

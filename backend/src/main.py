@@ -60,6 +60,10 @@ from interfaces.api.overview import (
 from interfaces.api.sensors import (
     router as sensors_router,
 )
+from infrastructure.observer_wiring import event_bus
+from interfaces.api.alerts import (
+    router as alerts_router,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -87,6 +91,7 @@ def run_sampler_once() -> None:
             adapter_selector=(
                 SensorAdapterSelector()
             ),
+            event_bus=event_bus,
         )
 
         sampler = SimulationSampler(
@@ -203,6 +208,8 @@ app.include_router(
 app.include_router(
     overview_router
 )
+
+app.include_router(alerts_router)
 
 
 @app.get("/")

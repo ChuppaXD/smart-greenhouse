@@ -1,3 +1,4 @@
+
 from dataclasses import replace
 from datetime import datetime
 from uuid import UUID
@@ -6,6 +7,11 @@ from application.readings.dto import ReadingDto
 from domain.devices.entity import Device
 from domain.sensors.ports import SensorPort
 from domain.sensors.reading import Reading
+
+# Phase 11 — Observer pattern
+from domain.events.bus import EventBus
+from domain.events.events import ReadingCreated
+
 from infrastructure.adapters.sensors.selector import (
     SensorAdapterSelector,
 )
@@ -27,10 +33,14 @@ class ReadingIngest:
         device_repository: DeviceRepository,
         reading_repository: ReadingRepository,
         adapter_selector: SensorAdapterSelector,
+        event_bus: EventBus | None = None,
     ):
         self._devices = device_repository
         self._readings = reading_repository
         self._selector = adapter_selector
+
+        # Phase 11 — Shared event bus.
+        self._event_bus = event_bus
 
     def take_reading(
         self,
@@ -63,7 +73,9 @@ class ReadingIngest:
         device_id: UUID,
         reading: Reading,
     ) -> ReadingDto:
-        self._get_sensor(device_id)
+        device = self._get_sensor(
+            device_id
+        )
 
         if reading.device_id != device_id:
             raise ValueError(
@@ -71,9 +83,29 @@ class ReadingIngest:
                 "the requested device."
             )
 
+        # Phase 5 — Save the reading as before.
         saved = self._readings.insert(
             reading
         )
+
+        # Phase 11 — Publish only after persistence.
+        # Tracking disabled still allows storing
+        # the reading, but no event is published.
+        if (
+            device.tracking_enabled
+            and self._event_bus is not None
+        ):
+            self._event_bus.publish(
+                ReadingCreated(
+                    device_id=saved.device_id,
+                    value=saved.value,
+                    unit=saved.unit,
+                    source=saved.source,
+                    recorded_at=saved.recorded_at,
+                    location_id=device.location_id,
+                    zone_id=device.zone_id,
+                )
+            )
 
         return ReadingDto(
             device_id=saved.device_id,

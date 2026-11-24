@@ -748,3 +748,86 @@ export async function fetchCommandHistory(
 
   return data as CommandLogDto[];
 }
+
+
+export type AlertSeverity =
+  | "info"
+  | "warning"
+  | "critical";
+
+export type AlertStatus =
+  | "active"
+  | "resolved"
+  | "all";
+
+export type AlertDto = {
+  id: string;
+  location_id: string | null;
+  zone_id: string | null;
+  device_id: string | null;
+  severity: AlertSeverity;
+  message: string;
+  event_type: string;
+  status: "active" | "resolved";
+  created_at: string;
+};
+
+export type AlertFilters = {
+  status?: AlertStatus;
+  location_id?: string;
+  zone_id?: string;
+  since?: string;
+  limit?: number;
+};
+
+export async function fetchAlerts(
+  filters: AlertFilters = {},
+): Promise<AlertDto[]> {
+  const params = new URLSearchParams();
+
+  params.set(
+    "status",
+    filters.status ?? "active",
+  );
+
+  params.set(
+    "limit",
+    String(filters.limit ?? 50),
+  );
+
+  if (filters.location_id) {
+    params.set(
+      "location_id",
+      filters.location_id,
+    );
+  }
+
+  if (filters.zone_id) {
+    params.set(
+      "zone_id",
+      filters.zone_id,
+    );
+  }
+
+  if (filters.since) {
+    params.set(
+      "since",
+      filters.since,
+    );
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/alerts?${params.toString()}`,
+  );
+
+  if (!response.ok) {
+    const message = await getErrorMessage(
+      response,
+      `Failed to load alerts: ${response.status}`,
+    );
+
+    throw new Error(message);
+  }
+
+  return response.json() as Promise<AlertDto[]>;
+}
